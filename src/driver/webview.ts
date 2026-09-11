@@ -16,16 +16,26 @@ export async function resolveWebview(page: Page): Promise<ResolvedWebview> {
     // The content iframe can also have a vscode-webview URL after reopening.
     // Only direct children of the workbench are independent editor webviews.
     for (const frame of page.frames().filter((candidate) => candidate.parentFrame() === page.mainFrame())) {
-      const element = await frame.frameElement();
-      const source = await element.getAttribute("src");
-      if (!frame.url().startsWith("vscode-webview://") && !source?.startsWith("vscode-webview://")) continue;
-      if (await element.isVisible()) visible.push(frame);
+      try {
+        const element = await frame.frameElement();
+        const source = await element.getAttribute("src");
+        if (!frame.url().startsWith("vscode-webview://") && !source?.startsWith("vscode-webview://")) continue;
+        if (await element.isVisible()) visible.push(frame);
+      } catch (error) {
+        if (!frame.isDetached()) throw error;
+      }
     }
-    if (visible.length > 1) throw new Error("More than one visible VS Code webview was found");
-    if (visible.length === 1) {
-      const active = await visible[0].locator("iframe#active-frame").elementHandle();
-      if (active && await active.boundingBox()) {
-        return { root: visible[0].locator("vscodewebview=*"), coordinateFrame: visible[0] };
+    const attached = visible.filter((frame) => !frame.isDetached());
+    if (attached.length > 1) throw new Error("More than one visible VS Code webview was found");
+    if (attached.length === 1) {
+      const frame = attached[0];
+      try {
+        const active = await frame.locator("iframe#active-frame").elementHandle();
+        if (active && await active.boundingBox() && !frame.isDetached()) {
+          return { root: frame.locator("vscodewebview=*"), coordinateFrame: frame };
+        }
+      } catch (error) {
+        if (!frame.isDetached()) throw error;
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
