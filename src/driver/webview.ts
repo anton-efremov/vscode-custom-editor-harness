@@ -13,12 +13,13 @@ export async function resolveWebview(page: Page): Promise<ResolvedWebview> {
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
     const visible: Frame[] = [];
-    for (const frame of page.frames().filter((candidate) => candidate !== page.mainFrame())) {
+    // The content iframe can also have a vscode-webview URL after reopening.
+    // Only direct children of the workbench are independent editor webviews.
+    for (const frame of page.frames().filter((candidate) => candidate.parentFrame() === page.mainFrame())) {
       const element = await frame.frameElement();
       const source = await element.getAttribute("src");
       if (!frame.url().startsWith("vscode-webview://") && !source?.startsWith("vscode-webview://")) continue;
-      const box = await element.boundingBox();
-      if (box && box.width > 0 && box.height > 0) visible.push(frame);
+      if (await element.isVisible()) visible.push(frame);
     }
     if (visible.length > 1) throw new Error("More than one visible VS Code webview was found");
     if (visible.length === 1) {

@@ -45,6 +45,13 @@ console.log = original;
 }
 
 describe("launcher process boundary", () => {
+  it.skipIf(process.platform === "win32")("runs the built CLI directly without a Node wrapper", () => {
+    const launcher = path.resolve(__dirname, "../../dist/launcher/main.js");
+    const result = spawnSync(launcher, ["--unknown", "scenario.ts"], { encoding: "utf8" });
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(2);
+  });
+
   it("rejects invalid terminal arguments with usage and exit code 2", () => {
     const launcher = path.resolve(__dirname, "../../dist/launcher/main.js");
     const result = spawnSync(process.execPath, [launcher, "--unknown", "scenario.ts"], { encoding: "utf8" });

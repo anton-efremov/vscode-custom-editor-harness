@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import { at, click, doubleClick, drag, exists, openWith, press, readSource, runCommand, screenshot, type, webview } from "vscode-custom-editor-harness";
 import { button, input, region } from "./targets.js";
 
@@ -20,4 +21,13 @@ assert((await readSource()).includes("changed by harness"), "In-memory source wa
 assert(await view.locator("body[data-source-written=true]").count() === 1, "Direct webview query failed");
 await runCommand("workbench.action.files.saveAll");
 await screenshot("final");
+const document = vscode.workspace.textDocuments.find(item => item.uri.fsPath.endsWith("case.fixture"));
+assert(document, "Fixture document was not found");
+for (let attempt = 0; attempt < 3; attempt++) {
+  await runCommand("workbench.action.closeActiveEditor");
+  await runCommand("vscode.openWith", document.uri, "debugHarnessFixture.editor");
+  await click(clickButton);
+  await (await webview()).getByRole("status").filter({ hasText: "clicked" }).waitFor();
+  await screenshot(`reopened-${attempt}`);
+}
 console.log("HARNESS_E2E_OK");
