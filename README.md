@@ -70,7 +70,7 @@ await click(classBox("Order"));
 ### Install the package
 
 ```bash
-npm install --save-dev vscode-custom-editor-harness
+npm install --save-dev github:anton-efremov/vscode-custom-editor-harness#f106ce3712f1e255a88080b2341ea
 ```
 
 ### Configure VS Code
